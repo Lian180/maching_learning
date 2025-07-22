@@ -76,40 +76,40 @@ ML_Housing_Project/
 ## 🚀 环境配置
 
 创建虚拟环境 (推荐):
-
+```bash
 python -m venv .venv
-
+```
 激活虚拟环境:
 
 Windows:
-
+```bash
 .\.venv\Scripts\activate
-
+```
 macOS/Linux:
-
+```bash
 source ./.venv/bin/activate
-
+```
 安装依赖:
-
+```bash
 pip install pandas matplotlib seaborn scikit-learn torch torchvision torchaudio optuna joblib einops
-
+```
 注意： torchvision 和 torchaudio 可能不是严格必需的，但通常与 torch 一起安装以避免潜在的依赖问题。如果你遇到 CUDA 相关问题，请参考 PyTorch 官方网站安装适合你 CUDA 版本的 PyTorch。einops 是 FT-Transformer 所需的库。
 
 ## 🏃‍♀️ 如何运行
 
 克隆仓库 (如果尚未克隆):
-
-git clone <你的GitHub仓库URL>
+```bash
+git clone <https://github.com/Lian180/maching_learning>
 cd ML_Housing_Project
-
+```
 确保数据文件存在:
 
 项目会自动从 scikit-learn 下载 california_housing.csv 到 ./data/ 目录。如果 ./data/ 目录不存在，也会自动创建。
 
 运行主程序:
-
+```bash
 python main.py
-
+```
 程序将依次执行数据预处理、超参数优化（Optuna 会运行多次试验以找到最佳模型和参数）、模型训练、评估和预测示例。所有生成的图表和日志文件将保存在 ./logs/ 目录下，训练好的模型和标准化器将保存在 ./models/ 目录下。
 
 ## 📊 结果展示
