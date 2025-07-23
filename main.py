@@ -26,7 +26,7 @@ from src.ft_transformer import FTTransformer  # 导入 FTTransformer
 from src.train import train_model, evaluate_model_on_dataloader
 from src.evaluate import plot_predictions_vs_actual, plot_residuals  # 导入绘图函数
 from src.utils import set_seed, save_model, load_model
-from src.hyperparameter_tuning import run_hyperparameter_optimization, objective
+from src.hyperparameter_tuning import run_hyperparameter_optimization, objective # 导入 objective
 
 # 忽略警告，使输出更整洁
 warnings.filterwarnings('ignore')
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # 将数据划分为训练+验证集 和 测试集
     # 80% 训练+验证, 20% 测试
     X_temp_df, X_test_df, y_temp_df, y_test_df, feature_scaler, target_scaler = split_and_scale_data(
-        df_processed, target_column='target', test_size=0.2, random_state=42
+        df_processed, target_column='target', test_size=0.1, random_state=42
     )
 
     # 从训练+验证集中再划分出训练集和验证集 (例如 80% 训练，20% 验证)
@@ -110,11 +110,11 @@ if __name__ == "__main__":
     X_test_tensor = torch.tensor(X_test_df.values, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test_df.values, dtype=torch.float32).view(-1, 1)
 
+    batch_size = 64 # 恢复 batch_size 为 64
     train_dataset = HousingDataset(X_train_tensor, y_train_tensor)
     val_dataset = HousingDataset(X_val_tensor, y_val_tensor)
     test_dataset = HousingDataset(X_test_tensor, y_test_tensor)
 
-    batch_size = 64  # Define batch size
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -134,8 +134,8 @@ if __name__ == "__main__":
     input_dim = X_train_tensor.shape[1]
     output_dim = 1
 
-    study = run_hyperparameter_optimization(train_loader, val_loader, input_dim, output_dim, device, num_epochs=50,
-                                            n_trials=50)  # 传递 num_epochs 给 objective
+    # 直接调用 run_hyperparameter_optimization，它会调用 objective
+    study = run_hyperparameter_optimization(train_loader, val_loader, input_dim, output_dim, device, n_trials=10) #
 
     best_params = study.best_params
     logger.info(f"\nOptuna 找到的最佳超参数: {best_params}")
@@ -168,24 +168,25 @@ if __name__ == "__main__":
 
     # 根据最佳超参数选择优化器
     if best_params['optimizer'] == 'Adam':
-        final_optimizer = optim.Adam(best_model.parameters(), lr=best_params['lr'])
+        final_optimizer = optim.Adam(best_model.parameters(), lr=best_params['lr'], weight_decay=best_params['weight_decay']) # 添加 weight_decay
     elif best_params['optimizer'] == 'RMSprop':
-        final_optimizer = optim.RMSprop(best_model.parameters(), lr=best_params['lr'])
+        final_optimizer = optim.RMSprop(best_model.parameters(), lr=best_params['lr'], weight_decay=best_params['weight_decay']) # 添加 weight_decay
     else:
-        final_optimizer = optim.Adam(best_model.parameters(), lr=best_params['lr'])  # Default to Adam
+        # 默认使用 Adam，并确保 weight_decay 参数被传递
+        final_optimizer = optim.Adam(best_model.parameters(), lr=best_params['lr'], weight_decay=best_params['weight_decay'])
 
     final_criterion = nn.MSELoss()
-    final_scheduler = lr_scheduler.ReduceLROnPlateau(final_optimizer, mode='min', factor=0.5, patience=10)
+    final_scheduler = lr_scheduler.ReduceLROnPlateau(final_optimizer, mode='min', factor=0.3, patience=15) # 调整最终训练的调度器参数
 
     logger.info(f"\n最终模型使用的损失函数: {final_criterion.__class__.__name__}")
-    logger.info(f"最终模型使用的优化器: {final_optimizer.__class__.__name__}, 学习率: {final_optimizer.defaults['lr']}")
+    logger.info(f"最终模型使用的优化器: {final_optimizer.__class__.__name__}, 学习率: {final_optimizer.defaults['lr']:.6f}, 权重衰减: {final_optimizer.defaults['weight_decay']:.6f}") # 打印权重衰减
     logger.info(f"最终模型使用的学习率调度器: {final_scheduler.__class__.__name__}")
 
     # --- 3. 方法层面：模型训练与调优 (使用最佳超参数) ---
     logger.info("\n--- 阶段3: 模型训练与调优 (使用最佳超参数) ---")
-    num_epochs_final = 200  # 最终训练轮次可以更多
-    patience_final = 25  # 最终训练早停耐心值可以更大
-    min_delta_final = 0.00001  # 最终训练早停最小改善量
+    num_epochs_final = 200  # 恢复为100个Epoch
+    patience_final = 30  # 最终训练早停耐心值可以更大
+    min_delta_final = 0.000001  # 最终训练早停最小改善量，更小以捕捉微弱提升
 
     train_model(best_model, train_loader, val_loader, final_criterion, final_optimizer, device, num_epochs_final,
                 scheduler=final_scheduler, patience=patience_final, min_delta=min_delta_final, log_dir=log_dir)
@@ -240,6 +241,8 @@ if __name__ == "__main__":
     load_model(loaded_model, loaded_model_path, device=device)
     loaded_model.eval()
 
+    # 注意：这里的新数据需要与特征工程后的列名和顺序保持一致
+    # 因此，我们需要对新数据进行与训练数据相同的预处理和特征工程
     new_data_raw = pd.DataFrame({
         'MedInc': [3.5, 4.0, 2.8, 5.2, 3.1],
         'HouseAge': [25.0, 15.0, 40.0, 10.0, 30.0],
@@ -254,13 +257,18 @@ if __name__ == "__main__":
     logger.info("\n待预测的新数据 (原始):")
     logger.info(new_data_raw)
 
-    temp_df_for_cols = load_data(data_file_path)
+    # 复制原始数据帧，以便进行特征工程，确保列名一致
+    # 这一步是为了获取所有特征工程后的列名，确保新数据在转换时保持一致
+    temp_df_for_cols = load_data(data_file_path) # 重新加载原始数据以获取完整的列名和结构
     temp_df_for_cols = handle_missing_values(temp_df_for_cols)
     temp_df_for_cols = handle_outliers(temp_df_for_cols, method='iqr')
     temp_df_for_cols = feature_engineering(temp_df_for_cols)
     feature_columns_for_prediction = temp_df_for_cols.drop(columns=['target']).columns
 
-    new_data_aligned = new_data_raw.reindex(columns=feature_columns_for_prediction, fill_value=0)
+    # 对新数据应用相同的特征工程
+    new_data_processed = feature_engineering(new_data_raw.copy())
+    new_data_aligned = new_data_processed.reindex(columns=feature_columns_for_prediction, fill_value=0)
+
 
     # 使用之前保存的 feature_scaler 和 target_scaler 进行标准化和反标准化
     new_data_scaled = feature_scaler.transform(new_data_aligned)
@@ -270,6 +278,8 @@ if __name__ == "__main__":
         if best_model_type == 'MLP':
             predictions_scaled = loaded_model(new_data_tensor).cpu().numpy()
         elif best_model_type == 'FTTransformer':
+            # FTTransformer 的 forward 方法需要 x_numerical 和 x_categorical
+            # 由于当前数据集没有分类特征，x_categorical 传入 None
             predictions_scaled = loaded_model(new_data_tensor, x_categorical=None).cpu().numpy()
         else:
             raise ValueError(f"未知模型类型: {best_model_type}")

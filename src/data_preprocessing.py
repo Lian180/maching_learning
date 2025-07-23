@@ -3,7 +3,7 @@ from sklearn.datasets import fetch_california_housing
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, PolynomialFeatures
 from sklearn.impute import KNNImputer
 import numpy as np
 import os
@@ -32,6 +32,8 @@ def load_data(file_path):
         housing = fetch_california_housing(as_frame=True)
         df = housing.frame
         df['target'] = housing.target  # 目标变量（房价）通常在 .target 属性中
+        # 创建数据目录如果不存在
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         df.to_csv(file_path, index=False)
         logger.info(f"数据已下载并保存到 '{file_path}'。")
     return df
@@ -78,7 +80,8 @@ def visualize_initial_data(df, save_dir='logs'):
     plot_path = os.path.join(save_dir, '房屋价格分布.png')
     plt.savefig(plot_path)  # 保存图表
     logger.info(f"图表已保存到: {plot_path}")
-    plt.show()  # 显示图表
+    plt.show() # 显示图表
+    plt.close() # 关闭图表，防止在非交互式环境中显示过多窗口
 
     # 绘制特征与目标变量（房价）之间的散点图
     features = df.drop(columns=['target']).columns
@@ -97,7 +100,8 @@ def visualize_initial_data(df, save_dir='logs'):
     plot_path = os.path.join(save_dir, '特征与房价散点图.png')
     plt.savefig(plot_path)  # 保存图表
     logger.info(f"图表已保存到: {plot_path}")
-    plt.show()  # 显示图表
+    plt.show() # 显示图表
+    plt.close() # 关闭图表
 
     logger.info("\n数据初步可视化完成。")
 
@@ -162,26 +166,59 @@ def feature_engineering(df):
     logger.info("\n--- 特征工程 ---")
     df_fe = df.copy()
 
-    # 示例1：每户平均卧室数比例 (如果 AveRooms 和 AveBedrms 存在)
+    # 1. 每户平均卧室数比例
     if 'AveRooms' in df_fe.columns and 'AveBedrms' in df_fe.columns:
-        df_fe['Bedrms_Per_Room'] = df_fe['AveBedrms'] / df_fe['AveRooms']
+        df_fe['Bedrms_Per_Room'] = df_fe['AveBedrms'] / (df_fe['AveRooms'] + 1e-6) # 加一个小数防止除以0
         logger.info("已创建新特征 'Bedrms_Per_Room'。")
 
-    # 示例2：人口密度 (如果 Population, Latitude, Longitude 存在)
-    # 这是一个简化的人口密度，实际需要更复杂的地理信息
+    # 2. 人口密度 (更精细的地理密度：通过经纬度分桶计算区域人口密度)
     if 'Population' in df_fe.columns and 'Latitude' in df_fe.columns and 'Longitude' in df_fe.columns:
-        # 假设一个简单的区域面积代理，例如基于经纬度范围
-        # 实际应用中，这需要更精确的地理面积计算
-        # 这里仅作示例，表示可以结合多个特征创建新特征
-        df_fe['Population_Density'] = df_fe['Population'] / (df_fe['Latitude'] * df_fe['Longitude']).abs()
-        # 避免除以0或极小值
-        df_fe['Population_Density'] = df_fe['Population_Density'].replace([np.inf, -np.inf], np.nan).fillna(0)
-        logger.info("已创建新特征 'Population_Density'。")
+        # 创建经纬度分桶，可以根据数据分布调整 bins 数量
+        df_fe['Lat_Bin'] = pd.cut(df_fe['Latitude'], bins=20, labels=False, include_lowest=True)
+        df_fe['Lon_Bin'] = pd.cut(df_fe['Longitude'], bins=20, labels=False, include_lowest=True)
 
-    # 示例3：组合地理位置特征 (经纬度组合)
+        # 计算每个地理分桶的人口总数
+        bin_population_sum = df_fe.groupby(['Lat_Bin', 'Lon_Bin'])['Population'].transform('sum')
+        # 计算每个地理分桶的房屋数量（用 Population 的 count 作为代理）
+        bin_house_count = df_fe.groupby(['Lat_Bin', 'Lon_Bin'])['Population'].transform('count')
+
+        # 计算新的区域人口密度
+        df_fe['Population_Density_Geo'] = bin_population_sum / (bin_house_count + 1e-6)
+        df_fe.drop(columns=['Lat_Bin', 'Lon_Bin'], inplace=True) # 删除临时分桶列
+        logger.info("已创建新特征 'Population_Density_Geo' (基于地理分桶)。")
+
+    # 3. 组合地理位置特征 (经纬度组合和多项式)
     if 'Latitude' in df_fe.columns and 'Longitude' in df_fe.columns:
         df_fe['Lat_x_Lon'] = df_fe['Latitude'] * df_fe['Longitude']
         logger.info("已创建新特征 'Lat_x_Lon'。")
+
+        # 经纬度多项式特征
+        poly = PolynomialFeatures(degree=2, include_bias=False)
+        coords = df_fe[['Latitude', 'Longitude']]
+        poly_coords = poly.fit_transform(coords)
+        poly_coords_df = pd.DataFrame(poly_coords, columns=poly.get_feature_names_out(['Latitude', 'Longitude']), index=df_fe.index)
+        # 避免重复列，只添加新的多项式特征
+        for col in poly_coords_df.columns:
+            if col not in df_fe.columns:
+                df_fe[col] = poly_coords_df[col]
+        logger.info("已创建经纬度多项式特征。")
+
+    # 4. 房屋年龄的非线性变换
+    if 'HouseAge' in df_fe.columns:
+        df_fe['HouseAge_sq'] = df_fe['HouseAge']**2
+        df_fe['HouseAge_log'] = np.log1p(df_fe['HouseAge']) # 对数变换
+        logger.info("已创建新特征 'HouseAge_sq' 和 'HouseAge_log'。")
+
+    # 5. 收入与房间数的交互
+    if 'MedInc' in df_fe.columns and 'AveRooms' in df_fe.columns:
+        df_fe['MedInc_x_AveRooms'] = df_fe['MedInc'] * df_fe['AveRooms']
+        logger.info("已创建新特征 'MedInc_x_AveRooms'。")
+
+    # 6. 每人房间数
+    if 'AveRooms' in df_fe.columns and 'AveOccup' in df_fe.columns:
+        df_fe['Rooms_Per_Person'] = df_fe['AveRooms'] / (df_fe['AveOccup'] + 1e-6)
+        logger.info("已创建新特征 'Rooms_Per_Person'。")
+
 
     logger.info("特征工程完成。")
     return df_fe

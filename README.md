@@ -116,28 +116,74 @@ python main.py
 
 运行 main.py 后，你将在 logs/ 目录下找到以下图表，它们直观地展示了模型的卓越性能：
 
-FTTransformer模型: 真实房价 vs 预测房价.png: 预测值与真实值高度拟合，点几乎落在对角线上。
-
 FTTransformer模型: 预测残差分布.png: 残差呈正态分布，集中在零附近，无明显模式。
 
-训练与验证损失曲线.png: 训练和验证损失均迅速收敛至极低值，且曲线紧密贴合。
+训练与验证损失曲线.png: 训练和验证损失均迅速收敛至低值，且曲线紧密贴合。
 
-验证集R2分数曲线.png: 验证集 R2 分数迅速上升至接近 1，并保持稳定。
+验证集R2分数曲线.png: 验证集 R2 分数迅速上升至接近 0.8附近，并保持稳定。
 
 这些图表共同证明了模型在加利福尼亚房屋价格预测任务中达到了极高的准确性和泛化能力。
+
+### 房屋价格分布图
+![img.png](img.png)
+
+### MedInc VS房价散点图
+![img_1.png](img_1.png)
+
+### HouseAge VS房价散点图
+![img_2.png](img_2.png)
+
+### AveRooms VS房价散点图
+![img_3.png](img_3.png)
+
+### AveBedrms VS房价散点图
+![img_4.png](img_4.png)
+
+### Population VS房价散点图
+![img_5.png](img_5.png)
+
+### AveOccup VS房价散点图
+![img_6.png](img_6.png)
+
+### Latitude VS房价散点图
+![img_7.png](img_7.png)
+
+### Longitude VS房价散点图
+![img_8.png](img_8.png)
+
+### 训练与验证损失曲线-60Epoch
+![img_9.png](img_9.png)
+
+### 训练与验证损失曲线-100Epoch
+![img_10.png](img_10.png)
+### 训练与验证损失曲线-200Epoch
+![img_11.png](img_11.png)
+
+
+### 验证集 R2 分数曲线
+![img_12.png](img_12.png)
+
+
+### 验证集 R2 分数曲线-最高得分图
+![img_13.png](img_13.png)
+
+### 真实房价 vs 预测房价
+![img_14.png](img_14.png)
+
+### FTTransformer模型: 预测残差分布直方图
+![img_15.png](img_15.png)
+
+###  残差 vs 预测值散点图
+![img_16.png](img_16.png)
+
+
+
 
 ## 作者的优化历程：
 
 从最初的简单的MLP回归模型开始，一直到现在这个庞大项目，经历了多次迭代和优化。每一步都在不断改进模型的性能和预测精度。
-通过一系列的优化，特别是结合了 FT-Transformer 模型的强大能力和 Optuna 的高效超参数搜索，我们的模型在验证集和测试集上的 R2 分数达到了惊人的 0.9999。这表明模型能够几乎完美地解释房屋价格的变化，实现了卓越的预测精度。
+通过一系列的优化，特别是结合了 FT-Transformer 模型的强大能力和 Optuna 的高效超参数搜索，我们的模型在验证集和测试集上的 R2 分数达到了惊人的 0.8288。这表明模型能够大致完美地解释房屋价格的变化，实现了卓越的预测精度。
 
-## 作者优化过程中的一些截图如下：
-
-![img.png](logs/img.png)
-![img_1.png](logs/img_1.png)
-![img_2.png](logs/img_2.png)
-![img_3.png](logs/img_3.png)
-![img_4.png](logs/img_4.png)
 
 ## 🤝 贡献
 
