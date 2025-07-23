@@ -125,56 +125,57 @@ FTTransformer模型: 预测残差分布.png: 残差呈正态分布，集中在�
 这些图表共同证明了模型在加利福尼亚房屋价格预测任务中达到了极高的准确性和泛化能力。
 
 ### 房屋价格分布图
-![img.png](img.png)
+![img.png](images/img.png)
 
 ### MedInc VS房价散点图
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 
 ### HouseAge VS房价散点图
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
 
 ### AveRooms VS房价散点图
-![img_3.png](img_3.png)
+![img_3.png](images/img_3.png)
 
 ### AveBedrms VS房价散点图
-![img_4.png](img_4.png)
+![img_4.png](images/img_4.png)
 
 ### Population VS房价散点图
-![img_5.png](img_5.png)
+![img_5.png](images/img_5.png)
 
 ### AveOccup VS房价散点图
-![img_6.png](img_6.png)
+![img_6.png](images/img_6.png)
 
 ### Latitude VS房价散点图
-![img_7.png](img_7.png)
+![img_7.png](images/img_7.png)
 
 ### Longitude VS房价散点图
-![img_8.png](img_8.png)
+![img_8.png](images/img_8.png)
 
 ### 训练与验证损失曲线-60Epoch
-![img_9.png](img_9.png)
+![img_9.png](images/img_9.png)
 
 ### 训练与验证损失曲线-100Epoch
-![img_10.png](img_10.png)
+![img_10.png](images/img_10.png)
+
 ### 训练与验证损失曲线-200Epoch
-![img_11.png](img_11.png)
+![img_11.png](images/img_11.png)
 
 
 ### 验证集 R2 分数曲线
-![img_12.png](img_12.png)
+![img_12.png](images/img_12.png)
 
 
 ### 验证集 R2 分数曲线-最高得分图
-![img_13.png](img_13.png)
+![img_13.png](images/img_13.png)
 
 ### 真实房价 vs 预测房价
-![img_14.png](img_14.png)
+![img_14.png](images/img_14.png)
 
 ### FTTransformer模型: 预测残差分布直方图
-![img_15.png](img_15.png)
+![img_15.png](images/img_15.png)
 
 ###  残差 vs 预测值散点图
-![img_16.png](img_16.png)
+![img_16.png](images/img_16.png)
 
 
 
